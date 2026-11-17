@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sudoku</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main>
+    <h1>Sudoku</h1>
+
+    <div class="controls">
+      <label for="difficulty">Difficulty</label>
+      <select id="difficulty" data-testid="difficulty">
+        {% for d in difficulties %}
+        <option value="{{ d }}">{{ d|capitalize }}</option>
+        {% endfor %}
+      </select>
+      <button id="new-game" data-testid="new-game">New game</button>
+    </div>
+
+    <p class="stats">
+      Empty: <span id="empty-count" data-testid="empty-count">0</span> ·
+      Mistakes: <span id="mistakes" data-testid="mistakes">0</span>
+    </p>
+
+    <!-- 81 inputs, id="cell-<row>-<col>", rows/cols 0-8 -->
+    <div id="board" class="board" data-testid="board" data-ready="false"></div>
+
+    <p id="message" class="message" data-testid="message"></p>
+  </main>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

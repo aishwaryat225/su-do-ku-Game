@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+.pytest_cache/
+results/
+*.png
+log.html
+report.html
+output.xml
+.DS_Store
