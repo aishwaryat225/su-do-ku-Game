@@ -4,32 +4,54 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sudoku</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <main>
-    <h1>Sudoku</h1>
+    <h1><span>S</span><span>u</span><span>d</span><span>o</span><span>k</span><span>u</span></h1>
 
     <div class="controls">
-      <label for="difficulty">Difficulty</label>
-      <select id="difficulty" data-testid="difficulty">
+      <select id="difficulty" aria-label="Difficulty">
         {% for d in difficulties %}
         <option value="{{ d }}">{{ d|capitalize }}</option>
         {% endfor %}
       </select>
-      <button id="new-game" data-testid="new-game">New game</button>
+      <button id="new-game" class="btn primary">New game</button>
+      <label class="switch" title="Show right / wrong as soon as you type a number">
+        <input type="checkbox" id="check-mode">
+        <span class="slider" aria-hidden="true"></span>
+        Check as I go
+      </label>
     </div>
 
     <p class="stats">
-      Empty: <span id="empty-count" data-testid="empty-count">0</span> ·
-      Mistakes: <span id="mistakes" data-testid="mistakes">0</span>
+      <span class="chip">Empty <b id="empty-count">0</b></span>
+      <span class="chip" id="mistakes-chip">Mistakes <b id="mistakes">0</b></span>
     </p>
 
-    <!-- 81 inputs, id="cell-<row>-<col>", rows/cols 0-8 -->
-    <div id="board" class="board" data-testid="board" data-ready="false"></div>
+    <!-- Each cell: <div class="cell"><input id="cell-R-C"><div class="notes">…</div></div>, R/C = 0-8 -->
+    <div id="board" class="board" data-ready="false"></div>
 
-    <p id="message" class="message" data-testid="message"></p>
+    <div class="toolbar">
+      <button id="undo" class="btn tool" title="Undo (Ctrl/Cmd+Z)">
+        <span class="icon">↶</span><span>Undo</span>
+      </button>
+      <button id="erase" class="btn tool" title="Erase (Backspace)">
+        <span class="icon">⌫</span><span>Erase</span>
+      </button>
+      <button id="notes-toggle" class="btn tool" aria-pressed="false" title="Pencil notes (N)">
+        <span class="icon">✎</span><span>Notes <b id="notes-state">Off</b></span>
+      </button>
+      <button id="hint" class="btn tool" title="Fill in one correct number">
+        <span class="icon">💡</span><span>Hint (<b id="hints-left">{{ hints }}</b>)</span>
+      </button>
+    </div>
+
+    <p id="message" class="message" aria-live="polite"></p>
   </main>
+  <div id="confetti" aria-hidden="true"></div>
   <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

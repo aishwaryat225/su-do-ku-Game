@@ -6,6 +6,9 @@ Documentation     End-to-end tests for the Sudoku app using Robot Framework + Pl
 Library           SudokuLibrary.py
 Suite Setup       Open App
 Suite Teardown    Close App
+# The app has no checking by default. Most tests need right/wrong feedback,
+# so each test starts with "Check as I go" switched on.
+Test Setup        Set Check As I Go    on
 Test Template     Solve Puzzle Left To Right
 
 
@@ -50,7 +53,7 @@ Try Numbers One By One In First Empty Cell
     Log    Numbers that fit the rules at (${row},${col}): ${candidates}
     FOR    ${n}    IN RANGE    1    10
         Enter Number    ${row}    ${col}    ${n}
-        ${ok}=    Run Keyword And Return Status    Cell Should Be Correct    ${row}    ${col}
+        ${ok}=    Cell Is Correct    ${row}    ${col}
         IF    ${ok}
             Log    App accepted ${n} at (${row},${col})
             BREAK
@@ -80,6 +83,101 @@ Given Numbers Cannot Be Changed
     [Template]    NONE
     Start New Game    easy
     Given Cells Should Be Read Only
+
+No Checking Until The Board Is Full
+    [Documentation]    With "Check as I go" off, a wrong number is not shown as
+    ...    wrong until every cell is filled. Then the app checks the whole board.
+    [Template]    NONE
+    Set Check As I Go    off
+    Start New Game    easy
+    ${board}=       Read Board From Page
+    ${solution}=    Solve Board    ${board}
+    ${cells}=       Get Empty Cells Left To Right    ${board}
+    # Put a wrong number in the first empty cell, everything else right.
+    ${first}=       Set Variable    ${cells}[0]
+    ${wrong}=       Get Wrong Number    ${board}    ${solution}    ${first}[0]    ${first}[1]
+    Enter Number    ${first}[0]    ${first}[1]    ${wrong}
+    Wrong Cell Count Should Be    0
+    FOR    ${cell}    IN    @{cells}[1:]
+        Enter Number    ${cell}[0]    ${cell}[1]    ${solution}[${cell}[0]][${cell}[1]]
+    END
+    Message Should Contain        Not quite: 1 number is wrong
+    Wrong Cell Count Should Be    1
+    Cell Should Be Wrong          ${first}[0]    ${first}[1]
+    # Fix it.
+    Enter Number    ${first}[0]    ${first}[1]    ${solution}[${first}[0]][${first}[1]]
+    Board Should Be Solved
+
+Undo And Erase
+    [Template]    NONE
+    Set Check As I Go    off
+    Start New Game    easy
+    ${board}=    Read Board From Page
+    ${cells}=    Get Empty Cells Left To Right    ${board}
+    ${row}    ${col}=    Set Variable    ${cells}[0]
+    Press Key In Cell      ${row}    ${col}    5
+    Press Key In Cell      ${row}    ${col}    7
+    Cell Value Should Be   ${row}    ${col}    7
+    Click Button           undo
+    Cell Value Should Be   ${row}    ${col}    5
+    Press Key In Cell      ${row}    ${col}    ControlOrMeta+z
+    Cell Value Should Be   ${row}    ${col}    ${EMPTY}
+    Press Key In Cell      ${row}    ${col}    3
+    Click Button           erase
+    Cell Value Should Be   ${row}    ${col}    ${EMPTY}
+    Press Key In Cell      ${row}    ${col}    4
+    Press Key In Cell      ${row}    ${col}    Backspace
+    Cell Value Should Be   ${row}    ${col}    ${EMPTY}
+
+Pencil Notes
+    [Template]    NONE
+    Start New Game    easy
+    ${board}=       Read Board From Page
+    ${solution}=    Solve Board    ${board}
+    ${cells}=       Get Empty Cells Left To Right    ${board}
+    ${row}    ${col}=    Set Variable    ${cells}[0]
+    Click Cell             ${row}    ${col}
+    Click Button           notes
+    Notes Mode Should Be   On
+    Press Key In Cell      ${row}    ${col}    1
+    Press Key In Cell      ${row}    ${col}    5
+    Press Key In Cell      ${row}    ${col}    9
+    Cell Notes Should Be   ${row}    ${col}    1    5    9
+    Cell Value Should Be   ${row}    ${col}    ${EMPTY}
+    Press Key In Cell      ${row}    ${col}    5
+    Cell Notes Should Be   ${row}    ${col}    1    9
+    Click Button           undo
+    Cell Notes Should Be   ${row}    ${col}    1    5    9
+    Press Key In Cell      ${row}    ${col}    n
+    Notes Mode Should Be   Off
+    Enter Number           ${row}    ${col}    ${solution}[${row}][${col}]
+    Cell Should Be Correct    ${row}    ${col}
+    Cell Notes Should Be   ${row}    ${col}
+
+Three Hints Per Game
+    [Template]    NONE
+    Start New Game    medium
+    ${board}=       Read Board From Page
+    ${solution}=    Solve Board    ${board}
+    Hints Left Should Be    3
+    FOR    ${left}    IN    2    1    0
+        Click Button            hint
+        Hints Left Should Be    ${left}
+    END
+    Hint Button Should Be Disabled
+    ${hinted}=    Get Hinted Cells
+    Length Should Be    ${hinted}    3
+    FOR    ${cell}    IN    @{hinted}
+        Should Be Equal As Integers    ${cell}[2]    ${solution}[${cell}[0]][${cell}[1]]
+    END
+
+Selected Cell Highlights Its Row Column And Box
+    [Template]    NONE
+    Start New Game    easy
+    Click Cell    4    4
+    Highlighted Cells Should Be    4    4
+    Click Cell    0    8
+    Highlighted Cells Should Be    0    8
 
 
 *** Keywords ***

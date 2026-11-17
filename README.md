@@ -38,10 +38,21 @@ python -m playwright install chromium
 
 ```bash
 python app.py
-# open http://127.0.0.1:5000
+# open http://127.0.0.1:5050
 ```
 
-Green = correct number, red = wrong number (counts as a mistake).
+**How to play**
+
+| Control | What it does |
+|---|---|
+| Click a cell, type 1-9 | Enter a number. The cell's row, column and 3x3 box are highlighted. |
+| **Check as I go** switch | Off (default): no right/wrong until the board is full, then wrong cells turn red. On: each number turns green (right) or red (wrong, counts as a mistake). |
+| **Notes** button or `N` | Pencil mode: typing a number adds/removes a small note instead. |
+| **Undo** or `Ctrl/Cmd+Z` | Undo the last move (numbers and notes). |
+| **Erase** or `Backspace` | Clear the selected cell. |
+| **Hint** | Fills in one correct number (selected cell, or the first empty one). 3 per game. |
+
+Finishing a row, column or box makes it flash; solving the board drops confetti.
 
 ## Run the tests
 
@@ -66,6 +77,16 @@ screenshots of the solved boards.
 * **Try Numbers One By One In First Empty Cell**: try 1, 2, 3 … in one cell until the
   app accepts one.
 * **Given Numbers Cannot Be Changed**: the puzzle's own numbers are read-only.
+* **Solve By Trying 1 To 9 In Every Cell**: in each empty cell, try only the numbers not
+  already in its row/column/box, one by one, until the app accepts one
+  (`-v TRY_LEVEL:hard`, `-v STEP_DELAY:1s`).
+* **No Checking Until The Board Is Full**: with "Check as I go" off, a wrong number is
+  only shown after the last cell is filled.
+* **Undo And Erase**, **Pencil Notes**, **Three Hints Per Game**,
+  **Selected Cell Highlights Its Row Column And Box**: the new controls.
+
+Each test switches "Check as I go" **on** first (Test Setup), because most tests
+need right/wrong feedback after every number.
 
 > The tests use a Python Playwright keyword library, so you **don't need Node.js**.
 > (The `robotframework-browser` library also uses Playwright, but it needs Node.js.)

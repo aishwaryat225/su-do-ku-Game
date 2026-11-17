@@ -148,13 +148,96 @@ class SudokuLibrary:
         return self.page.locator(f"#cell-{int(row)}-{int(col)}")
 
     @keyword
+    def set_check_as_i_go(self, on=True):
+        """Turn the 'Check as I go' switch on or off."""
+        on = str(on).lower() not in ("false", "0", "no", "off")
+        box = self.page.locator("#check-mode")
+        if box.is_checked() != on:
+            self.page.click("label.switch")
+        expect(box).to_be_checked(checked=on)
+
+    def _check_mode_on(self):
+        return self.page.locator("#check-mode").is_checked()
+
+    @keyword
     def enter_number(self, row, col, number):
-        """Type one number into a cell and wait for the app to check it."""
+        """Type one number into a cell. With 'Check as I go' on, wait for the check."""
         cell = self._cell(row, col)
         cell.fill("")
         cell.evaluate("el => delete el.dataset.checked")
         cell.fill(str(number))
-        expect(cell).to_have_attribute("data-checked", "true")
+        if self._check_mode_on():
+            expect(cell).to_have_attribute("data-checked", "true")
+        else:
+            expect(cell).to_have_value(str(number))
+
+    @keyword
+    def click_cell(self, row, col):
+        self._cell(row, col).click()
+
+    @keyword
+    def press_key_in_cell(self, row, col, key):
+        """Press a real keyboard key in a cell, e.g. 5, Backspace, n, Meta+z."""
+        self._cell(row, col).press(str(key))
+
+    @keyword
+    def click_button(self, name):
+        """name: undo, erase, notes, hint or new game."""
+        ids = {"undo": "#undo", "erase": "#erase", "notes": "#notes-toggle",
+               "hint": "#hint", "new game": "#new-game"}
+        self.page.click(ids[name.lower()])
+
+    @keyword
+    def cell_value_should_be(self, row, col, expected):
+        expect(self._cell(row, col)).to_have_value(str(expected))
+
+    @keyword
+    def cell_notes_should_be(self, row, col, *expected):
+        """Pencil notes shown in a cell, e.g. `Cell Notes Should Be  0  1  2  7`."""
+        notes = self.page.locator(f"#cell-{int(row)}-{int(col)} + .notes")
+        want = "".join(sorted(str(n) for n in expected))
+        expect(notes).to_have_text(want)
+
+    @keyword
+    def notes_mode_should_be(self, state):
+        expect(self.page.locator("#notes-state")).to_have_text(str(state))
+
+    @keyword
+    def hints_left_should_be(self, expected):
+        expect(self.page.locator("#hints-left")).to_have_text(str(expected))
+
+    @keyword
+    def hint_button_should_be_disabled(self):
+        expect(self.page.locator("#hint")).to_be_disabled()
+
+    @keyword
+    def get_hinted_cells(self):
+        """[(row, col, value), ...] for cells filled by the Hint button."""
+        return self.page.eval_on_selector_all(
+            "#board input.hinted",
+            "els => els.map(e => [+e.dataset.row, +e.dataset.col, +e.value])",
+        )
+
+    @keyword
+    def highlighted_cells_should_be(self, row, col):
+        """The clicked cell is 'selected'; its 20 row/column/box neighbours are 'peer'."""
+        row, col = int(row), int(col)
+        expect(self._cell(row, col)).to_have_class(_has("selected"))
+        got = set(map(tuple, self.page.eval_on_selector_all(
+            "#board input.peer", "els => els.map(e => [+e.dataset.row, +e.dataset.col])")))
+        want = {(r, c) for r in range(9) for c in range(9)
+                if (r, c) != (row, col)
+                and (r == row or c == col or (r // 3 == row // 3 and c // 3 == col // 3))}
+        if got != want:
+            raise AssertionError(f"Highlighted {sorted(got)}, expected {sorted(want)}")
+
+    @keyword
+    def wrong_cell_count_should_be(self, expected):
+        expect(self.page.locator("#board input.wrong")).to_have_count(int(expected))
+
+    @keyword
+    def message_should_contain(self, text):
+        expect(self.page.locator("#message")).to_contain_text(str(text))
 
     @keyword
     def set_board_value(self, board, row, col, number):
@@ -180,7 +263,13 @@ class SudokuLibrary:
 
     @keyword
     def given_cells_should_be_read_only(self):
+        given = self.page.locator("#board input.given")
+        assert given.count() > 0, "no given cells found"
         assert self.page.locator("#board input.given:not([readonly])").count() == 0
+        first = given.first
+        before = first.input_value()
+        first.press("1" if before != "1" else "2")
+        expect(first).to_have_value(before)
 
     @keyword
     def mistakes_should_be(self, expected):
